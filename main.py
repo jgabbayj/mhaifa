@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 import os
 import time
 
-def send_mail(email):
+def send_mail(email, area, row, seat):
     import smtplib
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
@@ -18,8 +18,8 @@ def send_mail(email):
     message = MIMEMultipart('alternative')
     message['From'] = sender_address
     message['To'] = receiver_address
-    message['Subject'] = 'מקום פנוי'  # The subject line
-    text = "התפנה מקום, יש לך 20 דקות להזמין אותו, בהצלחה"
+    message['Subject'] = 'Maccabi Haifa ticket available'  # The subject line
+    text = f"Area: {area}\nRow: {row}\nSeat: {seat}"
     # The body and the attachments for the mail
     message.attach(MIMEText(text, "plain"))
     # Create SMTP session for sending the mail
@@ -29,6 +29,15 @@ def send_mail(email):
     session.sendmail(sender_address, receiver_address, message.as_string())
     session.quit()
     print('Mail Sent')
+
+
+def get_ticket_snapshot(driver):
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.ID, "basketCtrlContainer"))
+    )
+    area = [x for x in driver.find_element(By.CSS_SELECTOR, ".areaName").text.split() if x.isnumeric()][0]
+    row, seat = [x for x in driver.find_element(By.CSS_SELECTOR, ".basketProperty.Details").text.replace(";","").split() if x.isnumeric()][:2]
+    return area, row, seat
 
 
 def main(url: str, username, password, email):
@@ -81,8 +90,9 @@ def main(url: str, username, password, email):
                 continue
             close_annoying_windows(driver)
             chosen_zone = available_zones[0]
+            chosen_zone_area_index = int(chosen_zone.get_attribute("data-areaindex"))
             chosen_zone.click()
-            if int(chosen_zone.get_attribute("data-areaindex")) not in LEFT_ZONES:
+            if chosen_zone_area_index not in LEFT_ZONES:
                 print("case 1")
                 seats_parents_element = WebDriverWait(driver, 10).until(
                     EC.presence_of_element_located((By.ID, "zoomContainer"))
@@ -102,7 +112,7 @@ def main(url: str, username, password, email):
                     continue
                 close_annoying_windows(driver)
                 available_seats_elements[0].click()
-                send_mail(email)
+                send_mail(email, *get_ticket_snapshot(driver))
                 break
             else:
                 print("case 2")
@@ -116,7 +126,7 @@ def main(url: str, username, password, email):
                     EC.element_to_be_clickable((By.ID, "btnProceed"))
                 )
                 button_proceed.click()
-                send_mail(email)
+                send_mail(email, *get_ticket_snapshot(driver))
                 break
 
 
