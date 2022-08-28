@@ -7,13 +7,12 @@ from threading import Thread
 from dotenv import load_dotenv
 import os
 import time
-load_dotenv()
 
-def send_mail():
+def send_mail(email):
     import smtplib
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
-    receiver_address = os.environ.get("EMAIL")
+    receiver_address = email
     sender_address = "jgabbayj@gmail.com"
     sender_pass = 'ovzzrduhoplxkjpn'
     message = MIMEMultipart('alternative')
@@ -32,9 +31,9 @@ def send_mail():
     print('Mail Sent')
 
 
-def main(url: str):
-    USERNAME = os.environ.get("USER")
-    PASSWORD = os.environ.get("PASSWORD")
+def main(url: str, username, password, email):
+    USERNAME = username
+    PASSWORD = password
     chrome_options = Options()
     chrome_options.add_experimental_option("detach", True)
     driver = webdriver.Chrome(chrome_options=chrome_options)
@@ -103,19 +102,21 @@ def main(url: str):
                     continue
                 close_annoying_windows(driver)
                 available_seats_elements[0].click()
-                send_mail()
+                send_mail(email)
                 break
             else:
                 print("case 2")
-                input_spinner = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, ".count.numericSpinner.ui-spinner-input"))
+                WebDriverWait(driver, 10).until(
+                    EC.text_to_be_present_in_element_value((By.CSS_SELECTOR, ".count.numericSpinner.ui-spinner-input"), "0")
                 )
+                input_spinner = driver.find_element(By.CSS_SELECTOR, ".count.numericSpinner.ui-spinner-input")
                 input_spinner.clear()
                 input_spinner.send_keys("1")
                 button_proceed = WebDriverWait(driver, 3).until(
                     EC.element_to_be_clickable((By.ID, "btnProceed"))
                 )
                 button_proceed.click()
+                send_mail(email)
                 break
 
 
@@ -131,11 +132,23 @@ def close_annoying_windows(driver):
 
 
 if __name__ == "__main__":
+    load_dotenv()
+    username = os.environ.get("USER")
+    password = os.environ.get("PASSWORD")
+    email = os.environ.get("EMAIL")
+    if not username or not password or not email:
+        if not username or not password:
+            print("Enter username and password:")
+            username = input("username: ")
+            password = input("password: ")
+        if not email:
+            email = input("Enter email address of recipient: ")
+        open(".env","w").write(f"USER={username}\nPASSWORD={password}\nEMAIL={email}")        
     num_threads = int(input("Number of tickets: "))
     url = input("Enter event url: ")
     threads = []
     for i in range(num_threads):
-        threads.append(Thread(target=main, args=[url]))
+        threads.append(Thread(target=main, args=[url, username, password, email]))
     for t in threads:
         t.start()
     for t in threads:
