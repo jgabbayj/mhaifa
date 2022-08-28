@@ -112,8 +112,10 @@ def main(url: str):
                 )
                 input_spinner.clear()
                 input_spinner.send_keys("1")
-                button_process = driver.find_element(By.ID, "btnProceed")
-                button_process.click()
+                button_proceed = WebDriverWait(driver, 3).until(
+                    EC.element_to_be_clickable((By.ID, "btnProceed"))
+                )
+                button_proceed.click()
                 break
 
 
