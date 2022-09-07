@@ -81,53 +81,52 @@ def main(url: str, username, password, email):
                 had_green_or_yellow_seats = False
         available_zones.extend(driver.find_elements(By.CLASS_NAME, "avail-red"))
         print("available zones=" + str(len(available_zones)))
-        if available_zones:
-            available_zones = [x for x in available_zones if
-                               int(x.get_attribute("data-areaindex")) < 72]
-            print("available_zones after filter=" + str(len(available_zones)))
-            if not available_zones:
-                driver.refresh()
+        available_zones = [x for x in available_zones if
+                           int(x.get_attribute("data-areaindex")) < 72]
+        print("available_zones after filter=" + str(len(available_zones)))
+        if not available_zones:
+            driver.refresh()
+            continue
+        close_annoying_windows(driver)
+        chosen_zone = available_zones[0]
+        chosen_zone_area_index = int(chosen_zone.get_attribute("data-areaindex"))
+        chosen_zone.click()
+        if chosen_zone_area_index not in LEFT_ZONES:
+            print("case 1")
+            seats_parents_element = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, "zoomContainer"))
+            )
+            seats_elements = seats_parents_element.find_elements(By.TAG_NAME, "img")
+            available_seats_elements = [x for x in seats_elements if x.get_attribute("data-firstfreeseatinrow")]
+            good_seats_elements = [x for x in available_seats_elements if
+                                   7 < int(x.get_attribute("alt").split("/")[0]) < 32]
+            best_seats_elements = [x for x in available_seats_elements if
+                                   12 < int(x.get_attribute("alt").split("/")[0]) < 18 or 26 < int(
+                                       x.get_attribute("alt").split("/")[0]) < 30]
+            print("available seats=" + str(len(available_seats_elements)) + " good seats=" + str(
+                len(good_seats_elements)) + " best seats=" + str(len(best_seats_elements)))
+            available_seats_elements = best_seats_elements + good_seats_elements + available_seats_elements
+            if not available_seats_elements:
+                driver.back()
                 continue
             close_annoying_windows(driver)
-            chosen_zone = available_zones[0]
-            chosen_zone_area_index = int(chosen_zone.get_attribute("data-areaindex"))
-            chosen_zone.click()
-            if chosen_zone_area_index not in LEFT_ZONES:
-                print("case 1")
-                seats_parents_element = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.ID, "zoomContainer"))
-                )
-                seats_elements = seats_parents_element.find_elements(By.TAG_NAME, "img")
-                available_seats_elements = [x for x in seats_elements if x.get_attribute("data-firstfreeseatinrow")]
-                good_seats_elements = [x for x in available_seats_elements if
-                                       7 < int(x.get_attribute("alt").split("/")[0]) < 32]
-                best_seats_elements = [x for x in available_seats_elements if
-                                       12 < int(x.get_attribute("alt").split("/")[0]) < 18 or 26 < int(
-                                           x.get_attribute("alt").split("/")[0]) < 30]
-                print("available seats=" + str(len(available_seats_elements)) + " good seats=" + str(
-                    len(good_seats_elements)) + " best seats=" + str(len(best_seats_elements)))
-                available_seats_elements = best_seats_elements + good_seats_elements + available_seats_elements
-                if not available_seats_elements:
-                    driver.back()
-                    continue
-                close_annoying_windows(driver)
-                available_seats_elements[0].click()
-                send_mail(email, *get_ticket_snapshot(driver))
-                break
-            else:
-                print("case 2")
-                WebDriverWait(driver, 10).until(
-                    EC.text_to_be_present_in_element_value((By.CSS_SELECTOR, ".count.numericSpinner.ui-spinner-input"), "0")
-                )
-                input_spinner = driver.find_element(By.CSS_SELECTOR, ".count.numericSpinner.ui-spinner-input")
-                input_spinner.clear()
-                input_spinner.send_keys("1")
-                button_proceed = WebDriverWait(driver, 3).until(
-                    EC.element_to_be_clickable((By.ID, "btnProceed"))
-                )
-                button_proceed.click()
-                send_mail(email, *get_ticket_snapshot(driver))
-                break
+            available_seats_elements[0].click()
+            send_mail(email, *get_ticket_snapshot(driver))
+            break
+        else:
+            print("case 2")
+            WebDriverWait(driver, 10).until(
+                EC.text_to_be_present_in_element_value((By.CSS_SELECTOR, ".count.numericSpinner.ui-spinner-input"), "0")
+            )
+            input_spinner = driver.find_element(By.CSS_SELECTOR, ".count.numericSpinner.ui-spinner-input")
+            input_spinner.clear()
+            input_spinner.send_keys("1")
+            button_proceed = WebDriverWait(driver, 3).until(
+                EC.element_to_be_clickable((By.ID, "btnProceed"))
+            )
+            button_proceed.click()
+            send_mail(email, *get_ticket_snapshot(driver))
+            break
 
 
 def close_annoying_windows(driver):
