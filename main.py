@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 import os
 import time
 
-def send_mail(email, area, row, seat):
+def send_mail(email, area=0, row=0, seat=0):
     import smtplib
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
@@ -54,20 +54,35 @@ def main(url: str, username, password, email):
             EC.presence_of_element_located((By.ID, "username"))
         )
         password_element = driver.find_element(By.ID, "password")
-        driver.implicitly_wait(1)
         username_element.send_keys(USERNAME)
         password_element.send_keys(PASSWORD)
         login_button_element = WebDriverWait(driver, 3).until(
             EC.element_to_be_clickable((By.ID, "btnLogin"))
         )
         login_button_element.click()
+        while True:
+            try:
+                WebDriverWait(driver, 3).until(
+                    EC.presence_of_element_located((By.ID, "PH_"))
+                )
+                print("not ready")
+                time.sleep(10)
+                driver.refresh()
+            except:
+                break
         try:
             WebDriverWait(driver, 3).until(
-                EC.presence_of_element_located((By.ID, "ctl00_spw1153_ctl00_steps_ctl00_stepContent"))
+                EC.presence_of_element_located((By.ID, "PH_TunnelLocation"))
             )
             break
         except:
             driver.refresh()
+
+
+    WebDriverWait(driver, 3).until(
+        EC.presence_of_element_located((By.ID, "ctl00_spw1153_ctl00_steps_ctl00_stepContent"))
+    )
+
     had_green_or_yellow_seats = True
     while True:
         available_zones = []
@@ -115,6 +130,8 @@ def main(url: str, username, password, email):
             break
         else:
             print("case 2")
+            send_mail(email)
+            close_annoying_windows(driver)
             WebDriverWait(driver, 10).until(
                 EC.text_to_be_present_in_element_value((By.CSS_SELECTOR, ".count.numericSpinner.ui-spinner-input"), "0")
             )
